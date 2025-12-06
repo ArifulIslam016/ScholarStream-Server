@@ -25,8 +25,15 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    
-
+    const db=client.db('ScholarStream')
+    const userCollections=db.collection('users')
+    app.post('/users',async(req,res)=>{
+      const userInfo=req.body;
+      userInfo.role='student'
+      console.log(userInfo)
+      const result=userCollections.insertOne(userInfo)
+      res.send(result)
+    })
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
