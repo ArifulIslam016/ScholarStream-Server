@@ -27,11 +27,35 @@ async function run() {
     await client.connect();
     const db=client.db('ScholarStream')
     const userCollections=db.collection('users')
+    const ScholarshipCollection=db.collection('Scholarships')
+    // User Related apis here 
+    // user post api
     app.post('/users',async(req,res)=>{
       const userInfo=req.body;
       userInfo.role='student'
-      console.log(userInfo)
-      const result=userCollections.insertOne(userInfo)
+      const isExist=await userCollections.findOne({email:userInfo.email})
+      if(isExist){
+        return  res.status(409).send({ 
+      message: "User Record already exists" 
+    })
+      }
+      const result=await userCollections.insertOne(userInfo)
+      res.send(result)
+    })
+    app.get('/users',async(req,res)=>{
+      const email=req.query.email
+      const result=await userCollections.findOne({email:email})
+      res.send(result)
+    })
+    // Scholarship storage related apis here
+    app.post('/scholarships',async(req,res)=>{
+      const scholarshipsInfo=req.body;
+      scholarshipsInfo.postdate=new Date()
+      const result=await ScholarshipCollection.insertOne(scholarshipsInfo)
+      res.send(result)
+    })
+    app.get('/scholarships',async(req,res)=>{
+      const result=await ScholarshipCollection.find().toArray()
       res.send(result)
     })
     await client.db("admin").command({ ping: 1 });
