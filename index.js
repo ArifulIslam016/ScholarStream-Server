@@ -7,8 +7,8 @@ app.use(cors());
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
-console.log(process.env.URI)
-const uri =process.env.URI
+console.log(process.env.URI);
+const uri = process.env.URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -25,39 +25,72 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    const db=client.db('ScholarStream')
-    const userCollections=db.collection('users')
-    const ScholarshipCollection=db.collection('Scholarships')
-    // User Related apis here 
+    const db = client.db("ScholarStream");
+    const userCollections = db.collection("users");
+    const ScholarshipCollection = db.collection("Scholarships");
+    // User Related apis here
     // user post api
-    app.post('/users',async(req,res)=>{
-      const userInfo=req.body;
-      userInfo.role='student'
-      const isExist=await userCollections.findOne({email:userInfo.email})
-      if(isExist){
-        return  res.status(409).send({ 
-      message: "User Record already exists" 
-    })
+    app.post("/users", async (req, res) => {
+      const userInfo = req.body;
+      userInfo.role = "student";
+      const isExist = await userCollections.findOne({ email: userInfo.email });
+      if (isExist) {
+        return res.status(409).send({
+          message: "User Record already exists",
+        });
       }
-      const result=await userCollections.insertOne(userInfo)
-      res.send(result)
-    })
-    app.get('/users',async(req,res)=>{
-      const email=req.query.email
-      const result=await userCollections.findOne({email:email})
-      res.send(result)
-    })
+      const result = await userCollections.insertOne(userInfo);
+      res.send(result);
+    });
+    app.get("/users", async (req, res) => {
+      const email = req.query.email;
+      const result = await userCollections.findOne({ email: email });
+      res.send(result);
+    });
     // Scholarship storage related apis here
-    app.post('/scholarships',async(req,res)=>{
-      const scholarshipsInfo=req.body;
-      scholarshipsInfo.postdate=new Date()
-      const result=await ScholarshipCollection.insertOne(scholarshipsInfo)
-      res.send(result)
-    })
-    app.get('/scholarships',async(req,res)=>{
-      const result=await ScholarshipCollection.find().toArray()
-      res.send(result)
-    })
+    app.post("/scholarships", async (req, res) => {
+      const scholarshipsInfo = req.body;
+      scholarshipsInfo.postdate = new Date();
+      const result = await ScholarshipCollection.insertOne(scholarshipsInfo);
+      res.send(result);
+    });
+    app.get("/scholarships", async (req, res) => {
+      const {
+        search = "",
+        catagory = "",
+        subjectcatagory = "",
+        country = "",
+        sortby = "",
+        order = "",
+        limit = 0,
+        skip = 0,
+      } = req.query;
+      const query = {};
+      const sortQurey = {};
+      if (search) {
+        query.$or = [
+          { scholarshipName: { $regex: search, $options: "i" } },
+          { universityName: { $regex: search, $options: "i" } },
+          { degree: { $regex: search, $options: "i" } },
+        ];
+      }
+      if (catagory) {
+        query.scholarshipCategory = catagory;
+      }
+      if (subjectcatagory) {
+        query.subjectCategory = subjectcatagory;
+      }
+      if (country) {
+        query.universityCountry = country;
+      }
+
+      if (sortby) {
+        sortQurey[sortby] = order === 'asc' ? 1 : -1;
+      }
+      const result = await ScholarshipCollection.find(query).sort(sortQurey).limit(parseInt(limit)).skip(parseInt(skip)).toArray();
+      const count = await ScholarshipCollection.countDocuments(query);
+      res.send({ ScholarshipData: result, count });
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
