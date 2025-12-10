@@ -5,9 +5,10 @@ require("dotenv").config();
 const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
+const stripe = require("stripe")(process.env.STRIPE_KEY);
+app.use(express.static("public"));
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
-console.log(process.env.URI);
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = process.env.URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -54,6 +55,7 @@ async function run() {
       const result = await ScholarshipCollection.insertOne(scholarshipsInfo);
       res.send(result);
     });
+    // All Scholarship api with search sort and filter functionality
     app.get("/scholarships", async (req, res) => {
       const {
         search = "",
@@ -85,12 +87,61 @@ async function run() {
       }
 
       if (sortby) {
-        sortQurey[sortby] = order === 'asc' ? 1 : -1;
+        sortQurey[sortby] = order === "asc" ? 1 : -1;
       }
-      const result = await ScholarshipCollection.find(query).sort(sortQurey).limit(parseInt(limit)).skip(parseInt(skip)).toArray();
+      const result = await ScholarshipCollection.find(query)
+        .sort(sortQurey)
+        .limit(parseInt(limit))
+        .skip(parseInt(skip))
+        .toArray();
       const count = await ScholarshipCollection.countDocuments(query);
       res.send({ ScholarshipData: result, count });
     });
+    // Single scholarship get api
+    app.get("/scholarship/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await ScholarshipCollection.findOne(query);
+      res.send(result);
+    });
+    // Payment related apis
+    app.post("/create-checkout-session", async (req, res) => {
+      const {
+        applicationFees,
+        studentEmail,
+        scholarshipId,
+        scholarshipName,
+        universityName,
+      } = req.body;
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            // Provide the exact Price ID (for example, price_1234) of the product you want to sell
+            price_data: {
+              currency: "USD",
+              unit_amount: parseInt(applicationFees * 100),
+              product_data: {
+                name: scholarshipName,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: studentEmail,
+        metadata: {
+          parcelId: scholarshipId,
+          parcelName: scholarshipName,
+          universityName: universityName,
+          paidAmount: applicationFees,
+        },
+        mode: "payment",
+        success_url: `${process.env.SITE_DOMAIN}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.SITE_DOMAIN}/payment-cancel`,
+      });
+
+      res.send({ url: session.url });
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
