@@ -29,6 +29,7 @@ async function run() {
     const db = client.db("ScholarStream");
     const userCollections = db.collection("users");
     const ScholarshipCollection = db.collection("Scholarships");
+    const applicationCollections = db.collection("apllications");
     // User Related apis here
     // user post api
     app.post("/users", async (req, res) => {
@@ -106,13 +107,25 @@ async function run() {
     });
     // Payment related apis
     app.post("/create-checkout-session", async (req, res) => {
+      const apllicationInfo = req.body;
       const {
         applicationFees,
-        studentEmail,
+        userEmail,
         scholarshipId,
         scholarshipName,
         universityName,
-      } = req.body;
+      } = apllicationInfo;
+      const isExist = await applicationCollections.findOne({
+        scholarshipId: scholarshipId,
+        userEmail: userEmail,
+        userId:apllicationInfo.userId
+
+      });
+      if (isExist && isExist.paymentStatus === "paid") {
+        return res.status(400).send({
+          message: "You already applied scholarship!",
+        });
+      }
       const session = await stripe.checkout.sessions.create({
         line_items: [
           {
@@ -127,7 +140,7 @@ async function run() {
             quantity: 1,
           },
         ],
-        customer_email: studentEmail,
+        customer_email: userEmail,
         metadata: {
           parcelId: scholarshipId,
           parcelName: scholarshipName,
@@ -138,10 +151,20 @@ async function run() {
         success_url: `${process.env.SITE_DOMAIN}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.SITE_DOMAIN}/payment-cancel`,
       });
-
+      apllicationInfo.applicationDate = new Date();
+      if (!isExist) {
+        const result = await applicationCollections.insertOne(apllicationInfo);
+      }
       res.send({ url: session.url });
     });
-
+    // Session retrive api here///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    app.patch("applicationFeeStatus-status", async (req, res) => {
+      const sessoionId = req.query.sessoinId;
+      const retrivedSession = await stripe.checkout.sessions.retrieve(
+        sessoionId
+      );
+      console.log(retrivedSession);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
