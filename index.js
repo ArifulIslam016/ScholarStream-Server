@@ -105,7 +105,8 @@ async function run() {
       const result = await ScholarshipCollection.findOne(query);
       res.send(result);
     });
-    // Payment related apis
+    // Payment related apis///////////////////////////////////////////////////
+    // payment Createtion api
     app.post("/create-checkout-session", async (req, res) => {
       const apllicationInfo = req.body;
       const {
@@ -142,8 +143,8 @@ async function run() {
         ],
         customer_email: userEmail,
         metadata: {
-          parcelId: scholarshipId,
-          parcelName: scholarshipName,
+          scholarshipId: scholarshipId,
+          scholarshipName: scholarshipName,
           universityName: universityName,
           paidAmount: applicationFees,
         },
@@ -158,12 +159,22 @@ async function run() {
       res.send({ url: session.url });
     });
     // Session retrive api here///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    app.patch("applicationFeeStatus-status", async (req, res) => {
+    app.patch("/applicationFeeStatus-status", async (req, res) => {
       const sessoionId = req.query.sessoinId;
+      console.log(sessoionId)
       const retrivedSession = await stripe.checkout.sessions.retrieve(
         sessoionId
       );
-      console.log(retrivedSession);
+      const{customer_email,  metadata,payment_intent, payment_status}=retrivedSession
+      // console.log(paidAmount)
+      const query={userEmail:customer_email,scholarshipId:metadata.scholarshipId}
+      updatedInfo={
+        $set:{paymentStatus:'paid',transitionId:payment_intent}
+      }
+      if(payment_status==='paid'){
+        const result=await applicationCollections.updateOne(query,updatedInfo)
+      }
+      res.send({payment_intent,metadata})
     });
     await client.db("admin").command({ ping: 1 });
     console.log(
