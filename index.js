@@ -176,6 +176,15 @@ async function run() {
       }
       res.send({payment_intent,metadata})
     });
+    app.get('/applications',async(req,res)=>{
+      const email=req.params.email
+      const query={ }
+      if(email){
+        query.userEmail=email
+      }
+      const result=await applicationCollections.find(query).toArray()
+      res.send(result)
+    })
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
