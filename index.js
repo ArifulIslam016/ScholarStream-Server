@@ -178,7 +178,7 @@ async function run() {
       res.send({payment_intent,metadata})
     });
     app.get('/applications',async(req,res)=>{
-      const email=req.params.email
+      const email=req.query.email
       const query={ }
       if(email){
         query.userEmail=email
