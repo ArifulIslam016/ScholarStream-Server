@@ -101,6 +101,7 @@ async function run() {
     // Single scholarship get api
     app.get("/scholarship/:id", async (req, res) => {
       const id = req.params.id;
+      console.log(id)
       const query = { _id: new ObjectId(id) };
       const result = await ScholarshipCollection.findOne(query);
       res.send(result);
@@ -183,6 +184,17 @@ async function run() {
         query.userEmail=email
       }
       const result=await applicationCollections.find(query).toArray()
+      res.send(result)
+    })
+    app.delete('/apllications/:id',async(req,res)=>{
+      const id=req.params.id
+      const result=await applicationCollections.deleteOne({_id:new ObjectId(id)})
+      res.send(result)
+    })
+    app.patch('/apllications/:id',async(req,res)=>{
+      const id=req.params.id
+      updatedApplication=req.body
+      const result=await applicationCollections.updateOne({_id:new ObjectId(id)},)
       res.send(result)
     })
     await client.db("admin").command({ ping: 1 });
