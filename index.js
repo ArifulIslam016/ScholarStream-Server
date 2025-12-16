@@ -101,7 +101,7 @@ async function run() {
     // Single scholarship get api
     app.get("/scholarship/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id)
+      console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await ScholarshipCollection.findOne(query);
       res.send(result);
@@ -120,8 +120,7 @@ async function run() {
       const isExist = await applicationCollections.findOne({
         scholarshipId: scholarshipId,
         userEmail: userEmail,
-        userId:apllicationInfo.userId
-
+        userId: apllicationInfo.userId,
       });
       if (isExist && isExist.paymentStatus === "paid") {
         return res.status(400).send({
@@ -162,41 +161,79 @@ async function run() {
     // Session retrive api here///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     app.patch("/applicationFeeStatus-status", async (req, res) => {
       const sessoionId = req.query.sessoinId;
-      console.log(sessoionId)
+      console.log(sessoionId);
       const retrivedSession = await stripe.checkout.sessions.retrieve(
         sessoionId
       );
-      const{customer_email,  metadata,payment_intent, payment_status}=retrivedSession
+      const { customer_email, metadata, payment_intent, payment_status } =
+        retrivedSession;
       // console.log(paidAmount)
-      const query={userEmail:customer_email,scholarshipId:metadata.scholarshipId}
-      updatedInfo={
-        $set:{paymentStatus:'paid',transitionId:payment_intent}
+      const query = {
+        userEmail: customer_email,
+        scholarshipId: metadata.scholarshipId,
+      };
+      updatedInfo = {
+        $set: { paymentStatus: "paid", transitionId: payment_intent },
+      };
+      if (payment_status === "paid") {
+        const result = await applicationCollections.updateOne(
+          query,
+          updatedInfo
+        );
       }
-      if(payment_status==='paid'){
-        const result=await applicationCollections.updateOne(query,updatedInfo)
-      }
-      res.send({payment_intent,metadata})
+      res.send({ payment_intent, metadata });
     });
-    app.get('/applications',async(req,res)=>{
-      const email=req.query.email
-      const query={ }
-      if(email){
-        query.userEmail=email
+    app.get("/applications", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.userEmail = email;
       }
-      const result=await applicationCollections.find(query).toArray()
+      const result = await applicationCollections.find(query).toArray();
+      res.send(result);
+    });
+    // apllication delte api
+    app.delete("/apllications/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await applicationCollections.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+    // apllication update api
+    app.patch("/apllications/:id", async (req, res) => {
+      const id = req.params.id;
+      updatedApplication = {
+        $set: { userName: req.body.name },
+      };
+      const result = await applicationCollections.updateOne(
+        { _id: new ObjectId(id) },
+        updatedApplication
+      );
+      res.send(result);
+    });
+    // application update Api for update apllication status only of moderator
+    app.patch("/applications/:id/applicationStatus", async (req, res) => {
+      const id = req.params.id;
+      const updatedStatus={
+        $set:{
+          applicationStatus:req.body.status
+        }
+      }
+      const result=await applicationCollections.updateOne({_id:new ObjectId(id)},updatedStatus)
       res.send(result)
-    })
-    app.delete('/apllications/:id',async(req,res)=>{
-      const id=req.params.id
-      const result=await applicationCollections.deleteOne({_id:new ObjectId(id)})
+    });
+    // Application feedbach Added Api
+    app.patch("/applications/:id/feedback", async (req, res) => {
+      const id = req.params.id;
+      const updatedStatus={
+        $set:{
+          feedback:req.body.feedback
+        }
+      }
+      const result=await applicationCollections.updateOne({_id:new ObjectId(id)},updatedStatus)
       res.send(result)
-    })
-    app.patch('/apllications/:id',async(req,res)=>{
-      const id=req.params.id
-      updatedApplication=req.body
-      const result=await applicationCollections.updateOne({_id:new ObjectId(id)},)
-      res.send(result)
-    })
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
