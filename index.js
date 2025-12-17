@@ -30,6 +30,7 @@ async function run() {
     const userCollections = db.collection("users");
     const ScholarshipCollection = db.collection("Scholarships");
     const applicationCollections = db.collection("apllications");
+    const reviewCollections=db.collection('reviews')
     // User Related apis here
     // user post api
     app.post("/users", async (req, res) => {
@@ -234,6 +235,19 @@ async function run() {
       const result=await applicationCollections.updateOne({_id:new ObjectId(id)},updatedStatus)
       res.send(result)
     });
+    // Review Post section
+    app.post('/reviews',async(req,res)=>{
+      const reviewInfo=req.body;
+      const isExist=await reviewCollections.findOne({scholarshipId:reviewInfo.scholarshipId,reviewerEmail:reviewInfo.reviewerEmail})
+      if(isExist){
+        return res.status(400).send({
+          message: "You already given you opinion",
+        });
+      }
+      reviewInfo.postAt=new Date()
+      const result=await reviewCollections.insertOne(reviewInfo)
+      res.send(result)
+    })
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
