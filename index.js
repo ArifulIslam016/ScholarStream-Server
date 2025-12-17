@@ -248,6 +248,33 @@ async function run() {
       const result=await reviewCollections.insertOne(reviewInfo)
       res.send(result)
     })
+    // Review get api here my reviews for studnt dashboard and all reviews for modarator dashboard
+    app.get('/reviews',async(req,res)=>{
+      const email=req.query.email;
+      const query={}
+      if(email){
+        query.reviewerEmail=email
+      }
+      const result=await reviewCollections.find(query).toArray()
+      res.send(result)
+    })
+    app.patch('/reviews/:id/edit',async(req,res)=>{
+      const reviewId=req.params.id
+      const reviewInfo=req.body
+      const updatedInfo={
+          $set:{
+            reviewComment:reviewInfo.reviewComment,
+            reviewStar:reviewInfo.reviewStar
+          }
+      }
+      const result=await reviewCollections.updateOne({_id:new ObjectId(reviewId)},updatedInfo)
+      res.send(result)
+    })
+    app.delete('/reviews/:id',async(req,res)=>{
+      const reviewId=req.params.id
+      const result=await reviewCollections.deleteOne({_id:new ObjectId(reviewId)})
+      res.send(result)
+    })
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
