@@ -30,7 +30,7 @@ async function run() {
     const userCollections = db.collection("users");
     const ScholarshipCollection = db.collection("Scholarships");
     const applicationCollections = db.collection("apllications");
-    const reviewCollections=db.collection('reviews')
+    const reviewCollections = db.collection("reviews");
     // User Related apis here
     // user post api
     app.post("/users", async (req, res) => {
@@ -50,11 +50,50 @@ async function run() {
       const result = await userCollections.findOne({ email: email });
       res.send(result);
     });
+    app.get("/allUsers", async (req, res) => {
+      const { filterkey = "" } = req.query;
+      console.log(filterkey);
+      const query = {};
+      if (filterkey) {
+        query.role = filterkey;
+      }
+      const result = await userCollections.find(query).sort().toArray();
+      res.send(result);
+    });
+    app.patch('/users/:id/edit',async(req,res)=>{
+      const userId=req.params.id
+      const updatedRole={
+        $set:{
+          role:req.body.role
+        }
+      }
+      const result=await userCollections.updateOne({_id:new ObjectId(userId)},updatedRole)
+      res.send(result)
+    })
+    
+    app.delete('/users/:id',async(req,res)=>{
+      const userId=req.params.id
+      const result=await userCollections.deleteOne({_id:new ObjectId(userId)})
+      res.send(result)
+    })
+    
     // Scholarship storage related apis here
     app.post("/scholarships", async (req, res) => {
       const scholarshipsInfo = req.body;
       scholarshipsInfo.postdate = new Date();
       const result = await ScholarshipCollection.insertOne(scholarshipsInfo);
+      res.send(result);
+    });
+    app.patch("/scholarships/:id", async (req, res) => {
+      const scholarsShipId = req.params.id;
+      const updatedInfo = req.body;
+      updatedInfo.applicationDeadline = new Date(
+        updatedInfo.applicationDeadline
+      );
+      const result = await ScholarshipCollection.updateOne(
+        { _id: new ObjectId(scholarsShipId) },
+        { $set: updatedInfo }
+      );
       res.send(result);
     });
     // All Scholarship api with search sort and filter functionality
@@ -216,65 +255,82 @@ async function run() {
     // application update Api for update apllication status only of moderator
     app.patch("/applications/:id/applicationStatus", async (req, res) => {
       const id = req.params.id;
-      const updatedStatus={
-        $set:{
-          applicationStatus:req.body.status
-        }
-      }
-      const result=await applicationCollections.updateOne({_id:new ObjectId(id)},updatedStatus)
-      res.send(result)
+      const updatedStatus = {
+        $set: {
+          applicationStatus: req.body.status,
+        },
+      };
+      const result = await applicationCollections.updateOne(
+        { _id: new ObjectId(id) },
+        updatedStatus
+      );
+      res.send(result);
     });
     // Application feedbach Added Api
     app.patch("/applications/:id/feedback", async (req, res) => {
       const id = req.params.id;
-      const updatedStatus={
-        $set:{
-          feedback:req.body.feedback
-        }
-      }
-      const result=await applicationCollections.updateOne({_id:new ObjectId(id)},updatedStatus)
-      res.send(result)
+      const updatedStatus = {
+        $set: {
+          feedback: req.body.feedback,
+        },
+      };
+      const result = await applicationCollections.updateOne(
+        { _id: new ObjectId(id) },
+        updatedStatus
+      );
+      res.send(result);
     });
     // Review Post section
-    app.post('/reviews',async(req,res)=>{
-      const reviewInfo=req.body;
-      const isExist=await reviewCollections.findOne({scholarshipId:reviewInfo.scholarshipId,reviewerEmail:reviewInfo.reviewerEmail})
-      if(isExist){
+    app.post("/reviews", async (req, res) => {
+      const reviewInfo = req.body;
+      const isExist = await reviewCollections.findOne({
+        scholarshipId: reviewInfo.scholarshipId,
+        reviewerEmail: reviewInfo.reviewerEmail,
+      });
+      if (isExist) {
         return res.status(400).send({
           message: "You already given you opinion",
         });
       }
-      reviewInfo.postAt=new Date()
-      const result=await reviewCollections.insertOne(reviewInfo)
-      res.send(result)
-    })
+      reviewInfo.postAt = new Date();
+      const result = await reviewCollections.insertOne(reviewInfo);
+      res.send(result);
+    });
     // Review get api here my reviews for studnt dashboard and all reviews for modarator dashboard
-    app.get('/reviews',async(req,res)=>{
-      const email=req.query.email;
-      const query={}
-      if(email){
-        query.reviewerEmail=email
+    app.get("/reviews", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.reviewerEmail = email;
       }
-      const result=await reviewCollections.find(query).toArray()
-      res.send(result)
-    })
-    app.patch('/reviews/:id/edit',async(req,res)=>{
-      const reviewId=req.params.id
-      const reviewInfo=req.body
-      const updatedInfo={
-          $set:{
-            reviewComment:reviewInfo.reviewComment,
-            reviewStar:reviewInfo.reviewStar
-          }
-      }
-      const result=await reviewCollections.updateOne({_id:new ObjectId(reviewId)},updatedInfo)
-      res.send(result)
-    })
-    app.delete('/reviews/:id',async(req,res)=>{
-      const reviewId=req.params.id
-      const result=await reviewCollections.deleteOne({_id:new ObjectId(reviewId)})
-      res.send(result)
-    })
+      const result = await reviewCollections
+        .find(query)
+        .sort({ postAt: -1 })
+        .toArray();
+      res.send(result);
+    });
+    app.patch("/reviews/:id/edit", async (req, res) => {
+      const reviewId = req.params.id;
+      const reviewInfo = req.body;
+      const updatedInfo = {
+        $set: {
+          reviewComment: reviewInfo.reviewComment,
+          reviewStar: reviewInfo.reviewStar,
+        },
+      };
+      const result = await reviewCollections.updateOne(
+        { _id: new ObjectId(reviewId) },
+        updatedInfo
+      );
+      res.send(result);
+    });
+    app.delete("/reviews/:id", async (req, res) => {
+      const reviewId = req.params.id;
+      const result = await reviewCollections.deleteOne({
+        _id: new ObjectId(reviewId),
+      });
+      res.send(result);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
