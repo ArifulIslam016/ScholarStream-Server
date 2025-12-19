@@ -52,7 +52,6 @@ async function run() {
     });
     app.get("/allUsers", async (req, res) => {
       const { filterkey = "" } = req.query;
-      console.log(filterkey);
       const query = {};
       if (filterkey) {
         query.role = filterkey;
@@ -60,23 +59,28 @@ async function run() {
       const result = await userCollections.find(query).sort().toArray();
       res.send(result);
     });
-    app.patch('/users/:id/edit',async(req,res)=>{
-      const userId=req.params.id
-      const updatedRole={
-        $set:{
-          role:req.body.role
-        }
-      }
-      const result=await userCollections.updateOne({_id:new ObjectId(userId)},updatedRole)
-      res.send(result)
-    })
-    
-    app.delete('/users/:id',async(req,res)=>{
-      const userId=req.params.id
-      const result=await userCollections.deleteOne({_id:new ObjectId(userId)})
-      res.send(result)
-    })
-    
+    app.patch("/users/:id/edit", async (req, res) => {
+      const userId = req.params.id;
+      const updatedRole = {
+        $set: {
+          role: req.body.role,
+        },
+      };
+      const result = await userCollections.updateOne(
+        { _id: new ObjectId(userId) },
+        updatedRole
+      );
+      res.send(result);
+    });
+
+    app.delete("/users/:id", async (req, res) => {
+      const userId = req.params.id;
+      const result = await userCollections.deleteOne({
+        _id: new ObjectId(userId),
+      });
+      res.send(result);
+    });
+
     // Scholarship storage related apis here
     app.post("/scholarships", async (req, res) => {
       const scholarshipsInfo = req.body;
@@ -137,6 +141,35 @@ async function run() {
         .toArray();
       const count = await ScholarshipCollection.countDocuments(query);
       res.send({ ScholarshipData: result, count });
+    });
+
+    // Analitics api here for Dashboard analistics page
+
+    app.get("/scholarship/analitics", async (req, res) => {
+      const pipeLine = [
+        {
+          $match: { paymentStatus: "paid" },
+        },
+        {
+          $group: {
+            _id: "paid",
+            totalCollectedFees: { $sum: "$applicationFees" },
+            totalStudentPaid:{$sum:1}
+          },
+        },
+      
+      ];
+      const applicationPeruniverCityPipeLIne=[
+        {$group:{
+          _id:'$universityName',
+          applicationCout:{$sum:1}
+        }}
+      ]
+      const collectedFees = await applicationCollections.aggregate(pipeLine).toArray();
+      const applicationPerUniversity=await applicationCollections.aggregate(applicationPeruniverCityPipeLIne).toArray()
+      const userCount=await userCollections.countDocuments()
+      const scholarShipCount=await ScholarshipCollection.countDocuments()
+      res.send({userCount,scholarShipCount,collectedFees,applicationPerUniversity,});
     });
     // Single scholarship get api
     app.get("/scholarship/:id", async (req, res) => {
@@ -331,6 +364,7 @@ async function run() {
       });
       res.send(result);
     });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
