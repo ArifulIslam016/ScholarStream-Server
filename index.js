@@ -342,6 +342,11 @@ async function run() {
         .toArray();
       res.send(result);
     });
+    app.get('/review/:scholarshipId',async(req,res)=>{
+      const id=req.params.scholarshipId
+      const result=await reviewCollections.find({scholarshipId:id}).toArray()
+      res.send(result)
+    })
     app.patch("/reviews/:id/edit", async (req, res) => {
       const reviewId = req.params.id;
       const reviewInfo = req.body;
