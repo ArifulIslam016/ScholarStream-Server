@@ -104,8 +104,8 @@ async function run() {
     app.get("/scholarships", async (req, res) => {
       const {
         search = "",
-        catagory = "",
-        subjectcatagory = "",
+        catagory ="",
+        // subjectcatagory = "",
         country = "",
         sortby = "",
         order = "",
@@ -124,9 +124,9 @@ async function run() {
       if (catagory) {
         query.scholarshipCategory = catagory;
       }
-      if (subjectcatagory) {
-        query.subjectCategory = subjectcatagory;
-      }
+      // if (subjectcatagory) {
+      //   query.subjectCategory = subjectcatagory;
+      // }
       if (country) {
         query.universityCountry = country;
       }
@@ -174,7 +174,7 @@ async function run() {
     // Single scholarship get api
     app.get("/scholarship/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await ScholarshipCollection.findOne(query);
       res.send(result);
@@ -234,7 +234,7 @@ async function run() {
     // Session retrive api here///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     app.patch("/applicationFeeStatus-status", async (req, res) => {
       const sessoionId = req.query.sessoinId;
-      console.log(sessoionId);
+      // console.log(sessoionId);
       const retrivedSession = await stripe.checkout.sessions.retrieve(
         sessoionId
       );
@@ -342,7 +342,7 @@ async function run() {
         .toArray();
       res.send(result);
     });
-    app.get('/review/:scholarshipId',async(req,res)=>{
+    app.get('/reviews/:scholarshipId',async(req,res)=>{
       const id=req.params.scholarshipId
       const result=await reviewCollections.find({scholarshipId:id}).toArray()
       res.send(result)
@@ -371,14 +371,14 @@ async function run() {
     });
 
     await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
   }
 }
-run().catch(console.dir);
+run().catch();
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  // console.log(`Example app listening on port ${port}`);
 });
