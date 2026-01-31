@@ -24,7 +24,7 @@ app.get("/", (req, res) => {
 });
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
+    // Connect the client to the server	(optional starting in v4.
     await client.connect();
     const db = client.db("ScholarStream");
     const userCollections = db.collection("users");
