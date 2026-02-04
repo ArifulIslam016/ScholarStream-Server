@@ -81,7 +81,7 @@ async function run() {
       res.send(result);
     });
 
-    // Scholarship storage related apis here
+    // Scholarship storage related apis
     app.post("/scholarships", async (req, res) => {
       const scholarshipsInfo = req.body;
       scholarshipsInfo.postdate = new Date();
